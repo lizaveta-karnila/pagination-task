@@ -1,6 +1,7 @@
 import { UserService } from './users.service';
-import { Controller, Get, Logger } from '@nestjs/common';
+import { Controller, Get, Logger, Query, UsePipes, ValidationPipe } from '@nestjs/common';
 import {UsersResponseDto} from "./users.response.dto";
+import { PagingParamsDTO } from 'src/common/types';
 
 @Controller('users')
 export class UserController {
@@ -8,9 +9,17 @@ export class UserController {
   constructor(private userService: UserService) {}
 
   @Get()
-  async getAllUsers() {
+  @UsePipes(new ValidationPipe({ whitelist: false, transform: true}))
+  async getAllUsers(
+    @Query()
+    pagingParams: PagingParamsDTO
+  ) {
     this.logger.log('Get all users');
-    const users = await this.userService.findAll();
-    return users.map((user) => UsersResponseDto.fromUsersEntity(user));
+    const users = await this.userService.findAll(pagingParams);
+    const usersCount = await this.userService.getCount();
+    return {
+      users: users.map((user) => UsersResponseDto.fromUsersEntity(user)),
+      usersCount,
+    };
   }
 }
